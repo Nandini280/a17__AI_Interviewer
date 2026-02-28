@@ -9,21 +9,14 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://a17-ai-interviewer-backend.vercel.app/$1"
+      "source": "/api/(.*)",
+      "destination": "https://a17-backend.vercel.app/api/$1"
     },
     {
-      "src": "/uploads/(.*)",
-      "dest": "https://a17-ai-interviewer-backend.vercel.app/uploads/$1"
-    },
-    {
-      "src": "/(.*)",
-      "destination": "/frontend/build/index.html"
+      "source": "/uploads/(.*)",
+      "destination": "https://a17-backend.vercel.app/uploads/$1"
     }
-  ],
-  "env": {
-    "REACT_APP_API_URL": "/api"
-  }
+  ]
 }
