@@ -7,16 +7,12 @@
       "config": {
         "distDir": "build"
       }
-    },
-    {
-      "src": "backend/src/server.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/src/server.js"
+      "destination": "https://a17-backend.vercel.app/api/$1"
     },
     {
       "src": "/(.*)",
@@ -24,6 +20,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "@react-app-api-url"
+    "REACT_APP_API_URL": "/api"
   }
 }
