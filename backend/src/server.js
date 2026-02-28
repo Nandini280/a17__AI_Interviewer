@@ -13,6 +13,11 @@ const interviewRoutes = require('./routes/interview');
 
 const app = express();
 
+// Test route
+app.get("/", (req, res) => {
+  res.send("Backend working correctly");
+});
+
 // Middleware
 app.use(helmet());
 app.use(cors());
