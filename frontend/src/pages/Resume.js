@@ -4,7 +4,7 @@ import axios from 'axios';
 import { FileText, Upload, Trash2, Check, Briefcase, GraduationCap, Code, Sparkles, Brain, History, User, LogOut, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const Resume = () => {
   const navigate = useNavigate();

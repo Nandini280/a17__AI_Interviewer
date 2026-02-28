@@ -24,6 +24,6 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://a17-ai-interviewer.vercel.app/api"
+    "REACT_APP_API_URL": "@react-app-api-url"
   }
 }
