@@ -20,7 +20,10 @@ app.get("/", (req, res) => {
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://a17-ai-interviewer.vercel.app'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
