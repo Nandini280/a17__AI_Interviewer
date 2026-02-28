@@ -3,17 +3,8 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
-// Dynamically determine API URL based on environment
-const getApiUrl = () => {
-  // Check if we're in production (Vercel) or development
-  if (process.env.NODE_ENV === 'production') {
-    return '/api';
-  }
-  // For development, use localhost:5000
-  return 'http://localhost:5000/api';
-};
-
-const API_URL = getApiUrl();
+// Use /api for production (Vercel), localhost:5000 for local development
+const API_URL = '/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

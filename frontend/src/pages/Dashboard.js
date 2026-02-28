@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Brain, FileText, Mic, History, User, LogOut, Upload, Sparkles, Calendar, Briefcase, Play, ChevronRight, Clock, Trophy, TrendingUp, Eye, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = '/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
