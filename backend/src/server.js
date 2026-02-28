@@ -21,7 +21,32 @@ app.get("/", (req, res) => {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://a17-ai-interviewer.vercel.app'],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'https://a17-ai-interviewer.vercel.app',
+      'https://ai-interviewer-*.vercel.app'
+    ];
+    
+    // Check if origin matches any allowed pattern
+    const match = allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        const regex = new RegExp('^' + allowed.replace('*', '.*') + '$');
+        return regex.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (match) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

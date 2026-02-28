@@ -12,11 +12,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "destination": "https://a17-backend.vercel.app/api/$1"
+      "dest": "https://a17-ai-interviewer-backend.vercel.app/$1"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "https://a17-ai-interviewer-backend.vercel.app/uploads/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/build/index.html"
+      "destination": "/frontend/build/index.html"
     }
   ],
   "env": {
