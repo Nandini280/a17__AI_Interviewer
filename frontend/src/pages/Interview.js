@@ -177,45 +177,120 @@ const Interview = () => {
     }
   };
 
+const recordingTimerRef = useRef(null);
+
   const startRecording = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // Check if browser supports speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge for voice recording.');
+      return;
+    }
+
+    try {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
 
+      // Handle recognition results (both interim and final)
       recognitionRef.current.onresult = (event) => {
-        let transcript = '';
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
         for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            transcript += event.results[i][0].transcript;
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
           }
         }
-        if (transcript) {
-          setTranscribedText(transcript);
-          setAnswer(transcript);
+        
+        // Show interim results while speaking
+        if (interimTranscript) {
+          setTranscribedText(interimTranscript);
+          setAnswer(interimTranscript);
+        }
+        
+        // Update with final transcript when speech is recognized
+        if (finalTranscript) {
+          setTranscribedText(finalTranscript);
+          setAnswer(finalTranscript);
         }
       };
 
+      // Handle errors
+      recognitionRef.current.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        
+        let errorMessage = 'Speech recognition error';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'Microphone not found. Please ensure your microphone is connected.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Microphone permission denied. Please allow microphone access.';
+            break;
+          case 'network':
+            errorMessage = 'Network error. Please check your internet connection.';
+            break;
+          default:
+            errorMessage = `Error: ${event.error}`;
+        }
+        
+        alert(errorMessage);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+        }
+      };
+
+      // Handle when recognition stops
+      recognitionRef.current.onend = () => {
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+        }
+      };
+
+      // Start recognition
       recognitionRef.current.start();
       setIsRecording(true);
+      setRecordingTime(0);
+      setTranscribedText('');
+      setAnswer('');
       
-      // Recording timer
-      const recordingTimer = setInterval(() => {
+      // Start recording timer
+      recordingTimerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
       
-      timerRef.current = recordingTimer;
-    } else {
-      alert('Speech recognition is not supported in your browser');
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      alert('Failed to start speech recognition. Please try again.');
     }
   };
 
   const stopRecording = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) clearInterval(timerRef.current);
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error('Error stopping recognition:', e);
+      }
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+    
+    // Clear recording timer
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
     }
   };
 
