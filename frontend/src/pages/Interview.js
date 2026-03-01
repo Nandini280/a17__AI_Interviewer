@@ -40,8 +40,11 @@ const Interview = () => {
   const [transcribedText, setTranscribedText] = useState('');
   const [skills, setSkills] = useState([]);
   
-  const recognitionRef = useRef(null);
+const recognitionRef = useRef(null);
   const timerRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const accumulatedTranscriptRef = useRef('');
+  const silenceTimerRef = useRef(null);
 
   useEffect(() => {
     fetchInterview();
@@ -176,8 +179,6 @@ const Interview = () => {
       alert('Error finishing interview');
     }
   };
-
-const recordingTimerRef = useRef(null);
 
 let accumulatedTranscript = '';
   let silenceTimer = null;
