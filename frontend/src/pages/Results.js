@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
 
 const Results = () => {
   const { id } = useParams();
@@ -52,7 +54,10 @@ const Results = () => {
 
   const fetchResults = async () => {
     try {
-      const response = await axios.get(`${API_URL}/interview/results/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/results/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setResults(response.data);
     } catch (error) {
       alert('Error loading results');
@@ -143,7 +148,10 @@ Feedback: ${a.feedback}
 
   const startNewInterview = async () => {
     try {
-      const response = await axios.post(`${API_URL}/interview/start`);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/interview/start`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       navigate(`/interview/${response.data.interviewId}`);
     } catch (e) {
       alert(e.response?.data?.message || 'Error starting interview');

@@ -16,7 +16,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
 
 const Interview = () => {
   const { id } = useParams();
@@ -51,11 +53,16 @@ const Interview = () => {
 
   const fetchInterview = async () => {
     try {
-      const response = await axios.get(`${API_URL}/interview/${id}/questions`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/${id}/questions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setInterview(response.data);
       
       // Fetch skills
-      const resumeRes = await axios.get(`${API_URL}/resume`);
+      const resumeRes = await axios.get(`${API_URL}/resume`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (resumeRes.data.skills) {
         setSkills(resumeRes.data.skills);
       }
@@ -93,11 +100,14 @@ const Interview = () => {
     }
 
     setSubmitting(true);
+    const token = localStorage.getItem('token');
     try {
       await axios.post(`${API_URL}/interview/${id}/answer`, {
         questionIndex: currentQuestion,
         answerText: answer,
         answerType
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       setQuestionStatus(prev => ({
@@ -136,7 +146,10 @@ const Interview = () => {
 
   const loadPreviousAnswer = async (index) => {
     try {
-      const response = await axios.get(`${API_URL}/interview/${id}`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const existingAnswer = response.data.answers.find(a => 
         a.questionText === interview.questions[index]?.questionText
       );
@@ -153,7 +166,10 @@ const Interview = () => {
 
   const handleFinish = async () => {
     try {
-      const response = await axios.post(`${API_URL}/interview/${id}/finish`);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/interview/${id}/finish`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       navigate(`/results/${id}`);
     } catch (error) {
       alert('Error finishing interview');
