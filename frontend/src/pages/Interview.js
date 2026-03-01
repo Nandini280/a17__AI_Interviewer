@@ -498,15 +498,16 @@ let accumulatedTranscript = '';
                 {isRecording && (
                   <div style={styles.recordingIndicator}>
                     <span style={styles.recordingDot}></span>
-                    Recording...
+                    Recording... Speak now
                   </div>
                 )}
-                {transcribedText && (
-                  <div style={styles.transcribedText}>
-                    <p style={styles.transcribedLabel}>Transcribed Text:</p>
-                    <p>{transcribedText}</p>
-                  </div>
-                )}
+                {/* Text box to show real-time transcription */}
+                <textarea
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  placeholder="Your answer will appear here as you speak..."
+                  style={styles.voiceTextarea}
+                />
                 <p style={styles.voiceNote}>Click record and speak your answer clearly</p>
               </div>
             )}
@@ -859,7 +860,7 @@ const styles = {
     borderRadius: '50%',
     animation: 'pulse 1s infinite'
   },
-  transcribedText: {
+transcribedText: {
     padding: '1rem',
     backgroundColor: '#1E1E3A',
     borderRadius: '8px',
@@ -874,6 +875,20 @@ const styles = {
   voiceNote: {
     fontSize: '0.875rem',
     color: '#64748B'
+  },
+  voiceTextarea: {
+    width: '100%',
+    minHeight: '200px',
+    padding: '1rem',
+    border: '1px solid #2E2E4A',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    resize: 'vertical',
+    outline: 'none',
+    fontFamily: 'inherit',
+    backgroundColor: '#1E1E3A',
+    color: '#F8FAFC',
+    marginBottom: '1rem'
   },
   navigation: {
     display: 'flex',
