@@ -28,16 +28,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/resume', resumeRoutes);
-app.use('/api/interview', interviewRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AI Interviewer API is running' });
-});
-
 // MongoDB Connection - cached for serverless
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai-interviewer';
 
@@ -86,7 +76,7 @@ connectDB()
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Ensure DB connection before each request
+// Ensure DB connection before each request - THIS MUST BE BEFORE THE ROUTES
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -95,6 +85,16 @@ app.use(async (req, res, next) => {
     console.error('Database connection error:', err);
     res.status(503).json({ message: 'Service temporarily unavailable - database connection failed' });
   }
+});
+
+// Routes - ADDED AFTER DB MIDDLEWARE
+app.use('/api/auth', authRoutes);
+app.use('/api/resume', resumeRoutes);
+app.use('/api/interview', interviewRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'AI Interviewer API is running' });
 });
 
 // Error handling middleware
