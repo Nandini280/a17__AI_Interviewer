@@ -528,6 +528,7 @@ router.get('/results/:id', auth, async (req, res) => {
 // DELETE /api/interview/:id - Delete an interview
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // First verify the interview belongs to this user
     const interview = await Interview.findOne({ 
       _id: req.params.id, 
       userId: req.userId 
@@ -537,7 +538,15 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Interview not found' });
     }
     
-    await Interview.deleteOne({ _id: req.params.id });
+    // Delete using both _id and userId to ensure security
+    const result = await Interview.deleteOne({ 
+      _id: req.params.id,
+      userId: req.userId 
+    });
+    
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Failed to delete interview' });
+    }
     
     res.json({ message: 'Interview deleted successfully' });
   } catch (error) {

@@ -140,15 +140,30 @@ const Dashboard = () => {
     }
   };
 
-  const startInterview = async () => {
+const startInterview = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to start an interview');
+        navigate('/login');
+        return;
+      }
+      
       const response = await axios.post(`${API_URL}/interview/start`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      navigate(`/interview/${response.data.interviewId}`);
+      
+      console.log('Start interview response:', response.data);
+      
+      if (response.data.interviewId) {
+        navigate(`/interview/${response.data.interviewId}`);
+      } else {
+        alert('Error: No interview ID returned from server');
+      }
     } catch (e) { 
       console.error('Start interview error:', e);
+      console.error('Error response:', e.response?.data);
+      
       const errorMsg = e.response?.data?.message || 'Error starting interview. Please make sure you have uploaded a resume with extractable skills.';
       alert(errorMsg); 
     }
