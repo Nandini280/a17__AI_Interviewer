@@ -40,11 +40,12 @@ const Interview = () => {
   const [transcribedText, setTranscribedText] = useState('');
   const [skills, setSkills] = useState([]);
   
-const recognitionRef = useRef(null);
+  const recognitionRef = useRef(null);
   const timerRef = useRef(null);
   const recordingTimerRef = useRef(null);
   const accumulatedTranscriptRef = useRef('');
   const silenceTimerRef = useRef(null);
+  const isRecordingRef = useRef(false);
 
   useEffect(() => {
     fetchInterview();
@@ -180,9 +181,6 @@ const recognitionRef = useRef(null);
     }
   };
 
-let accumulatedTranscript = '';
-  let silenceTimer = null;
-
   const startRecording = () => {
     // Check if browser supports speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -192,8 +190,12 @@ let accumulatedTranscript = '';
       return;
     }
 
+    // Use refs for state that needs to be accessed in callbacks
+    isRecordingRef.current = true;
+    accumulatedTranscriptRef.current = '';
+    
     const restartRecognition = () => {
-      if (recognitionRef.current && isRecording) {
+      if (recognitionRef.current && isRecordingRef.current) {
         try {
           recognitionRef.current.start();
         } catch (e) {
@@ -223,27 +225,27 @@ let accumulatedTranscript = '';
           }
         }
         
-        // Clear silence timer
-        if (silenceTimer) {
-          clearTimeout(silenceTimer);
+        // Clear silence timer using ref
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
         }
         
         // Show interim results while speaking
         if (interimTranscript) {
-          const currentText = accumulatedTranscript + interimTranscript;
+          const currentText = accumulatedTranscriptRef.current + interimTranscript;
           setTranscribedText(currentText);
           setAnswer(currentText);
         }
         
         // Update with final transcript when speech is recognized
         if (finalTranscript) {
-          accumulatedTranscript += finalTranscript + ' ';
-          setTranscribedText(accumulatedTranscript.trim());
-          setAnswer(accumulatedTranscript.trim());
+          accumulatedTranscriptRef.current += finalTranscript + ' ';
+          setTranscribedText(accumulatedTranscriptRef.current.trim());
+          setAnswer(accumulatedTranscriptRef.current.trim());
           
           // Auto-restart for continuous recording after short delay
-          if (isRecording) {
-            silenceTimer = setTimeout(() => {
+          if (isRecordingRef.current) {
+            silenceTimerRef.current = setTimeout(() => {
               restartRecognition();
             }, 500);
           }
@@ -255,16 +257,17 @@ let accumulatedTranscript = '';
         console.error('Speech recognition error:', event.error);
         
         // Don't stop for no-speech, just restart
-        if (event.error === 'no-speech' && isRecording) {
+        if (event.error === 'no-speech' && isRecordingRef.current) {
           console.log('No speech detected, restarting...');
           setTimeout(() => {
-            if (isRecording) {
+            if (isRecordingRef.current) {
               restartRecognition();
             }
           }, 300);
           return;
         }
         
+        isRecordingRef.current = false;
         setIsRecording(false);
         
         let errorMessage = 'Speech recognition error';
@@ -289,17 +292,17 @@ let accumulatedTranscript = '';
         if (recordingTimerRef.current) {
           clearInterval(recordingTimerRef.current);
         }
-        if (silenceTimer) {
-          clearTimeout(silenceTimer);
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
         }
       };
 
       // Handle when recognition stops
       recognitionRef.current.onend = () => {
-        // Only restart if we're still supposed to be recording
-        if (isRecording) {
+        // Only restart if we're still supposed to be recording - use ref
+        if (isRecordingRef.current) {
           setTimeout(() => {
-            if (isRecording) {
+            if (isRecordingRef.current) {
               restartRecognition();
             }
           }, 100);
@@ -317,7 +320,7 @@ let accumulatedTranscript = '';
       setRecordingTime(0);
       setTranscribedText('');
       setAnswer('');
-      accumulatedTranscript = '';
+      accumulatedTranscriptRef.current = '';
       
       // Start recording timer
       recordingTimerRef.current = setInterval(() => {
@@ -326,11 +329,14 @@ let accumulatedTranscript = '';
       
     } catch (error) {
       console.error('Error starting speech recognition:', error);
+      isRecordingRef.current = false;
       alert('Failed to start speech recognition. Please try again.');
     }
   };
 
   const stopRecording = () => {
+    isRecordingRef.current = false;
+    
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -340,6 +346,12 @@ let accumulatedTranscript = '';
       recognitionRef.current = null;
     }
     setIsRecording(false);
+    
+    // Clear silence timer
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     
     // Clear recording timer
     if (recordingTimerRef.current) {
