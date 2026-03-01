@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [resume, setResume] = useState(null);
   const [stats, setStats] = useState({ totalInterviews: 0, averageScore: 0, skillsIdentified: 0 });
   const [recentInterviews, setRecentInterviews] = useState([]);
+  const [interviewSkills, setInterviewSkills] = useState([]);
 
   const c = {
     bgPrimary: '#0F0F1A', bgSecondary: '#16162A', bgTertiary: '#1E1E3A',
@@ -35,7 +36,10 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setResume(response.data);
-    } catch (e) { console.log('No resume'); }
+    } catch (e) { 
+      console.log('No resume'); 
+      setResume(null);
+    }
   };
 
   const fetchDashboardStats = async () => {
@@ -45,7 +49,10 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data);
-    } catch (e) { console.log('Error'); }
+    } catch (e) { 
+      console.log('Error');
+      setStats({ totalInterviews: 0, averageScore: 0, skillsIdentified: 0 });
+    }
   };
 
   const fetchRecentInterviews = async () => {
@@ -54,8 +61,26 @@ const Dashboard = () => {
       const response = await axios.get(`${API_URL}/interview/history`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setRecentInterviews((response.data.interviews || []).slice(0, 4));
-    } catch (e) { console.log('Error'); }
+      const interviews = response.data.interviews || [];
+      setRecentInterviews(interviews.slice(0, 4));
+      
+      // Extract unique skills from completed interviews
+      const allSkills = [];
+      interviews.forEach(interview => {
+        if (interview.skillsTested && interview.status === 'completed') {
+          interview.skillsTested.forEach(skill => {
+            if (!allSkills.includes(skill)) {
+              allSkills.push(skill);
+            }
+          });
+        }
+      });
+      setInterviewSkills(allSkills);
+    } catch (e) { 
+      console.log('Error');
+      setRecentInterviews([]);
+      setInterviewSkills([]);
+    }
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
@@ -312,13 +337,30 @@ const Dashboard = () => {
             </div>
             <div style={{ padding: '0 16px', borderRight: `1px solid ${c.border}` }}>
               <p style={{ fontSize: '0.9rem', fontWeight: '600', color: c.textSecondary, marginBottom: '16px' }}>TOP SKILLS</p>
-              {resume && resume.skills ? resume.skills.slice(0, 3).map((skill, i) => <div key={i} style={{ marginBottom: '8px' }}><span style={{ fontSize: '0.85rem', color: c.textSecondary }}>{skill}</span><div style={{ height: '4px', backgroundColor: c.bgTertiary, borderRadius: '2px', marginTop: '2px' }}><div style={{ height: '100%', width: `${75 - i * 10}%`, backgroundColor: c.primary, borderRadius: '2px' }} /></div></div>) : <p style={{ color: c.textMuted, fontSize: '0.85rem' }}>No skills</p>}
+              {interviewSkills.length > 0 ? interviewSkills.slice(0, 3).map((skill, i) => (
+                <div key={i} style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.85rem', color: c.textSecondary }}>{skill}</span>
+                  <div style={{ height: '4px', backgroundColor: c.bgTertiary, borderRadius: '2px', marginTop: '2px' }}>
+                    <div style={{ height: '100%', width: `${75 - i * 10}%`, backgroundColor: c.primary, borderRadius: '2px' }} />
+                  </div>
+                </div>
+              )) : (
+                <p style={{ color: c.textMuted, fontSize: '0.85rem' }}>
+                  {stats.totalInterviews > 0 ? 'No skills data available' : 'Take an interview to see your skills'}
+                </p>
+              )}
             </div>
             <div style={{ padding: '0 16px', textAlign: 'center' }}>
               <p style={{ fontSize: '0.9rem', fontWeight: '600', color: c.textSecondary, marginBottom: '16px' }}>LATEST BADGE</p>
-              <Trophy size={32} style={{ color: c.primary, marginBottom: '8px' }} />
-              <p style={{ fontSize: '0.95rem', fontWeight: '600', color: c.textPrimary }}>Interview Master</p>
-              <p style={{ fontSize: '0.75rem', color: c.textMuted }}>Earned 2 days ago</p>
+              {stats.totalInterviews > 0 ? (
+                <>
+                  <Trophy size={32} style={{ color: c.primary, marginBottom: '8px' }} />
+                  <p style={{ fontSize: '0.95rem', fontWeight: '600', color: c.textPrimary }}>Interview Master</p>
+                  <p style={{ fontSize: '0.75rem', color: c.textMuted }}>Earned {stats.totalInterviews} interview{stats.totalInterviews !== 1 ? 's' : ''} ago</p>
+                </>
+              ) : (
+                <p style={{ color: c.textMuted, fontSize: '0.85rem' }}>Complete interviews to earn badges</p>
+              )}
             </div>
           </div>
         </div>
