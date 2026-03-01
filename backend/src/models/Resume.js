@@ -8,7 +8,19 @@ const resumeSchema = new mongoose.Schema({
   },
   fileUrl: {
     type: String,
-    required: true
+    default: ''
+  },
+  fileData: {
+    type: Buffer,
+    default: null
+  },
+  contentType: {
+    type: String,
+    default: 'application/pdf'
+  },
+  fileName: {
+    type: String,
+    default: ''
   },
   extractedText: {
     type: String,

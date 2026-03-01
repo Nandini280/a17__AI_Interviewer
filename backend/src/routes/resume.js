@@ -1,25 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const auth = require('../middleware/auth');
 const Resume = require('../models/Resume');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'resume-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure multer for memory storage (we'll store in MongoDB)
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -107,7 +93,7 @@ const determineDomain = (skills) => {
   return 'General';
 };
 
-// POST /api/resume/upload - Upload and parse resume
+// POST /api/resume/upload - Upload and parse resume (stores in MongoDB)
 router.post('/upload', auth, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
@@ -116,14 +102,15 @@ router.post('/upload', auth, upload.single('resume'), async (req, res) => {
 
     let extractedText = '';
 
+    // Parse the file from memory
     if (req.file.mimetype === 'application/pdf') {
       const pdfParse = require('pdf-parse');
-      const dataBuffer = fs.readFileSync(req.file.path);
+      const dataBuffer = req.file.buffer;
       const data = await pdfParse(dataBuffer);
       extractedText = data.text;
     } else if (req.file.mimetype.includes('word')) {
       const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ path: req.file.path });
+      const result = await mammoth.extractRawText({ buffer: req.file.buffer });
       extractedText = result.value;
     }
 
@@ -131,18 +118,25 @@ router.post('/upload', auth, upload.single('resume'), async (req, res) => {
     const allSkills = [...skills.technical, ...skills.soft, ...skills.tools];
     const domain = determineDomain(skills);
 
+    // Check if resume already exists
     let resume = await Resume.findOne({ userId: req.userId });
 
     if (resume) {
-      resume.fileUrl = `/uploads/${req.file.filename}`;
+      // Update existing resume with new file data
+      resume.fileData = req.file.buffer;
+      resume.contentType = req.file.mimetype;
+      resume.fileName = req.file.originalname;
       resume.extractedText = extractedText;
       resume.skills = allSkills;
       resume.domain = domain;
       await resume.save();
     } else {
+      // Create new resume
       resume = new Resume({
         userId: req.userId,
-        fileUrl: `/uploads/${req.file.filename}`,
+        fileData: req.file.buffer,
+        contentType: req.file.mimetype,
+        fileName: req.file.originalname,
         extractedText,
         skills: allSkills,
         domain
@@ -154,7 +148,7 @@ router.post('/upload', auth, upload.single('resume'), async (req, res) => {
       message: 'Resume uploaded successfully',
       resume: {
         id: resume._id,
-        fileUrl: resume.fileUrl,
+        fileUrl: `/api/resume/view`,
         skills: allSkills,
         domain,
         uploadedAt: resume.updatedAt
@@ -199,7 +193,7 @@ router.get('/', auth, async (req, res) => {
 
     res.json({
       id: resume._id,
-      fileUrl: resume.fileUrl,
+      fileUrl: resume.fileData ? '/api/resume/view' : '',
       skills: resume.skills,
       domain: resume.domain,
       uploadedAt: resume.uploadedAt
@@ -219,11 +213,6 @@ router.delete('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'No resume found' });
     }
 
-    const filePath = path.join(__dirname, '../../uploads', path.basename(resume.fileUrl));
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
     res.json({ message: 'Resume deleted successfully' });
   } catch (error) {
     console.error('Delete resume error:', error);
@@ -231,42 +220,28 @@ router.delete('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/resume/view - View resume in browser
+// GET /api/resume/view - View resume in browser (serves from MongoDB)
 router.get('/view', auth, async (req, res) => {
   try {
     console.log('View resume request for user:', req.userId);
     
     const resume = await Resume.findOne({ userId: req.userId });
     
-    if (!resume || !resume.fileUrl) {
+    if (!resume || !resume.fileData) {
       console.log('No resume found for user:', req.userId);
       return res.status(404).json({ message: 'No resume found' });
     }
 
-    const filePath = path.join(__dirname, '../../uploads', path.basename(resume.fileUrl));
-    console.log('Looking for file at:', filePath);
-    
-    if (!fs.existsSync(filePath)) {
-      console.log('File not found at path:', filePath);
-      return res.status(404).json({ message: 'Resume file not found on server' });
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentTypes = {
-      '.pdf': 'application/pdf',
-      '.doc': 'application/msword',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    };
-    
-    // Set CORS headers for the file response
+    // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream');
+    res.setHeader('Content-Type', resume.contentType || 'application/pdf');
     res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Content-Length', resume.fileData.length);
     
-    console.log('Sending file:', filePath);
-    res.sendFile(filePath);
+    console.log('Sending resume from MongoDB, size:', resume.fileData.length);
+    res.send(resume.fileData);
   } catch (error) {
     console.error('View resume error:', error);
     res.status(500).json({ message: 'Error viewing resume: ' + error.message });
