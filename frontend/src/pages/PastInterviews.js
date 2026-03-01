@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
 
 const PastInterviews = () => {
   const navigate = useNavigate();

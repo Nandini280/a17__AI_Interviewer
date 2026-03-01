@@ -4,7 +4,12 @@ import axios from 'axios';
 import { FileText, Upload, Trash2, Check, Briefcase, GraduationCap, Code, Sparkles, Brain, History, User, LogOut, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+// Use /api for production (Vercel), localhost:5000 for local development
+// The env var should be just the base URL (e.g., https://a17-backend.vercel.app)
+// In production without env var, default to the backend URL
+const API_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
 
 const Resume = () => {
   const navigate = useNavigate();
