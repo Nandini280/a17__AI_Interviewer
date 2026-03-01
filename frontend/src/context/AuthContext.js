@@ -4,7 +4,8 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 // Use /api for production (Vercel), localhost:5000 for local development
-const API_URL = '/api';
+// For production, point to the backend Vercel URL
+const API_URL = process.env.REACT_APP_API_URL || 'https://a17-backend.vercel.app/api';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
