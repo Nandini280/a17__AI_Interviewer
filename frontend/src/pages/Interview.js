@@ -179,6 +179,9 @@ const Interview = () => {
 
 const recordingTimerRef = useRef(null);
 
+let accumulatedTranscript = '';
+  let silenceTimer = null;
+
   const startRecording = () => {
     // Check if browser supports speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -188,9 +191,20 @@ const recordingTimerRef = useRef(null);
       return;
     }
 
+    const restartRecognition = () => {
+      if (recognitionRef.current && isRecording) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          // Ignore if already started
+        }
+      }
+    };
+
     try {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
+      // Use non-continuous mode for better compatibility
+      recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
 
@@ -208,29 +222,52 @@ const recordingTimerRef = useRef(null);
           }
         }
         
+        // Clear silence timer
+        if (silenceTimer) {
+          clearTimeout(silenceTimer);
+        }
+        
         // Show interim results while speaking
         if (interimTranscript) {
-          setTranscribedText(interimTranscript);
-          setAnswer(interimTranscript);
+          const currentText = accumulatedTranscript + interimTranscript;
+          setTranscribedText(currentText);
+          setAnswer(currentText);
         }
         
         // Update with final transcript when speech is recognized
         if (finalTranscript) {
-          setTranscribedText(finalTranscript);
-          setAnswer(finalTranscript);
+          accumulatedTranscript += finalTranscript + ' ';
+          setTranscribedText(accumulatedTranscript.trim());
+          setAnswer(accumulatedTranscript.trim());
+          
+          // Auto-restart for continuous recording after short delay
+          if (isRecording) {
+            silenceTimer = setTimeout(() => {
+              restartRecognition();
+            }, 500);
+          }
         }
       };
 
       // Handle errors
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
+        
+        // Don't stop for no-speech, just restart
+        if (event.error === 'no-speech' && isRecording) {
+          console.log('No speech detected, restarting...');
+          setTimeout(() => {
+            if (isRecording) {
+              restartRecognition();
+            }
+          }, 300);
+          return;
+        }
+        
         setIsRecording(false);
         
         let errorMessage = 'Speech recognition error';
         switch (event.error) {
-          case 'no-speech':
-            errorMessage = 'No speech detected. Please try again.';
-            break;
           case 'audio-capture':
             errorMessage = 'Microphone not found. Please ensure your microphone is connected.';
             break;
@@ -244,17 +281,32 @@ const recordingTimerRef = useRef(null);
             errorMessage = `Error: ${event.error}`;
         }
         
-        alert(errorMessage);
+        if (event.error !== 'no-speech') {
+          alert(errorMessage);
+        }
+        
         if (recordingTimerRef.current) {
           clearInterval(recordingTimerRef.current);
+        }
+        if (silenceTimer) {
+          clearTimeout(silenceTimer);
         }
       };
 
       // Handle when recognition stops
       recognitionRef.current.onend = () => {
-        setIsRecording(false);
-        if (recordingTimerRef.current) {
-          clearInterval(recordingTimerRef.current);
+        // Only restart if we're still supposed to be recording
+        if (isRecording) {
+          setTimeout(() => {
+            if (isRecording) {
+              restartRecognition();
+            }
+          }, 100);
+        } else {
+          setIsRecording(false);
+          if (recordingTimerRef.current) {
+            clearInterval(recordingTimerRef.current);
+          }
         }
       };
 
@@ -264,6 +316,7 @@ const recordingTimerRef = useRef(null);
       setRecordingTime(0);
       setTranscribedText('');
       setAnswer('');
+      accumulatedTranscript = '';
       
       // Start recording timer
       recordingTimerRef.current = setInterval(() => {
