@@ -48,34 +48,54 @@ if (!cached) {
 }
 
 const connectDB = async () => {
+  // If already connected, return cached connection
   if (cached.conn) {
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
+  // If connection in progress, wait for it
+  if (cached.promise) {
+    return cached.promise;
+  }
 
-    cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
+  // Start new connection with timeout
+  const opts = {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+  };
+
+  cached.promise = mongoose.connect(MONGO_URI, opts)
+    .then((mongoose) => {
+      console.log('MongoDB connected successfully');
+      cached.conn = mongoose;
       return mongoose;
+    })
+    .catch((err) => {
+      console.error('MongoDB connection error:', err.message);
+      cached.promise = null;
+      cached.conn = null;
+      throw err;
     });
-  }
 
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
+  return cached.promise;
 };
 
 // Initialize DB connection
 connectDB()
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
+
+// Ensure DB connection before each request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database connection error:', err);
+    res.status(503).json({ message: 'Service temporarily unavailable - database connection failed' });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
