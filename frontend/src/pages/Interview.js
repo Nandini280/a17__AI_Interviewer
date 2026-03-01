@@ -194,25 +194,23 @@ const Interview = () => {
     isRecordingRef.current = true;
     accumulatedTranscriptRef.current = '';
     
-    const restartRecognition = () => {
-      if (recognitionRef.current && isRecordingRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          // Ignore if already started
-        }
-      }
-    };
+    console.log('Starting speech recognition...');
 
     try {
+      // Create new recognition instance
       recognitionRef.current = new SpeechRecognition();
-      // Use non-continuous mode for better compatibility
-      recognitionRef.current.continuous = false;
+      
+      // Configure for continuous recognition
+      recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
+      
+      console.log('SpeechRecognition instance created');
 
-      // Handle recognition results (both interim and final)
+      // Handle recognition results
       recognitionRef.current.onresult = (event) => {
+        console.log('Speech recognition result received', event);
+        
         let interimTranscript = '';
         let finalTranscript = '';
         
@@ -225,10 +223,7 @@ const Interview = () => {
           }
         }
         
-        // Clear silence timer using ref
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
-        }
+        console.log('Interim:', interimTranscript, 'Final:', finalTranscript);
         
         // Show interim results while speaking
         if (interimTranscript) {
@@ -240,15 +235,10 @@ const Interview = () => {
         // Update with final transcript when speech is recognized
         if (finalTranscript) {
           accumulatedTranscriptRef.current += finalTranscript + ' ';
-          setTranscribedText(accumulatedTranscriptRef.current.trim());
-          setAnswer(accumulatedTranscriptRef.current.trim());
-          
-          // Auto-restart for continuous recording after short delay
-          if (isRecordingRef.current) {
-            silenceTimerRef.current = setTimeout(() => {
-              restartRecognition();
-            }, 500);
-          }
+          const finalText = accumulatedTranscriptRef.current.trim();
+          setTranscribedText(finalText);
+          setAnswer(finalText);
+          console.log('Updated answer:', finalText);
         }
       };
 
@@ -256,56 +246,40 @@ const Interview = () => {
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         
-        // Don't stop for no-speech, just restart
-        if (event.error === 'no-speech' && isRecordingRef.current) {
-          console.log('No speech detected, restarting...');
-          setTimeout(() => {
-            if (isRecordingRef.current) {
-              restartRecognition();
-            }
-          }, 300);
+        // Don't stop for no-speech, just let it continue
+        if (event.error === 'no-speech') {
+          console.log('No speech detected, continuing...');
           return;
+        }
+        
+        if (event.error === 'not-allowed') {
+          alert('Microphone permission denied. Please allow microphone access in your browser settings.');
+        } else if (event.error === 'audio-capture') {
+          alert('No microphone found. Please connect a microphone.');
+        } else if (event.error !== 'no-speech') {
+          alert(`Speech recognition error: ${event.error}`);
         }
         
         isRecordingRef.current = false;
         setIsRecording(false);
         
-        let errorMessage = 'Speech recognition error';
-        switch (event.error) {
-          case 'audio-capture':
-            errorMessage = 'Microphone not found. Please ensure your microphone is connected.';
-            break;
-          case 'not-allowed':
-            errorMessage = 'Microphone permission denied. Please allow microphone access.';
-            break;
-          case 'network':
-            errorMessage = 'Network error. Please check your internet connection.';
-            break;
-          default:
-            errorMessage = `Error: ${event.error}`;
-        }
-        
-        if (event.error !== 'no-speech') {
-          alert(errorMessage);
-        }
-        
         if (recordingTimerRef.current) {
           clearInterval(recordingTimerRef.current);
-        }
-        if (silenceTimerRef.current) {
-          clearTimeout(silenceTimerRef.current);
         }
       };
 
       // Handle when recognition stops
       recognitionRef.current.onend = () => {
-        // Only restart if we're still supposed to be recording - use ref
+        console.log('Speech recognition ended');
+        
+        // Only restart if we're still supposed to be recording
         if (isRecordingRef.current) {
-          setTimeout(() => {
-            if (isRecordingRef.current) {
-              restartRecognition();
-            }
-          }, 100);
+          console.log('Restarting recognition...');
+          try {
+            recognitionRef.current.start();
+          } catch (e) {
+            console.error('Error restarting recognition:', e);
+          }
         } else {
           setIsRecording(false);
           if (recordingTimerRef.current) {
@@ -316,6 +290,8 @@ const Interview = () => {
 
       // Start recognition
       recognitionRef.current.start();
+      console.log('Recognition started successfully');
+      
       setIsRecording(true);
       setRecordingTime(0);
       setTranscribedText('');
@@ -330,7 +306,7 @@ const Interview = () => {
     } catch (error) {
       console.error('Error starting speech recognition:', error);
       isRecordingRef.current = false;
-      alert('Failed to start speech recognition. Please try again.');
+      alert('Failed to start speech recognition. Please check console for details.');
     }
   };
 
