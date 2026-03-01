@@ -30,21 +30,30 @@ const Dashboard = () => {
 
   const fetchResume = async () => {
     try {
-      const response = await axios.get(`${API_URL}/resume`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/resume`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setResume(response.data);
     } catch (e) { console.log('No resume'); }
   };
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await axios.get(`${API_URL}/interview/user/dashboard`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/user/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStats(response.data);
     } catch (e) { console.log('Error'); }
   };
 
   const fetchRecentInterviews = async () => {
     try {
-      const response = await axios.get(`${API_URL}/interview/history`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setRecentInterviews((response.data.interviews || []).slice(0, 4));
     } catch (e) { console.log('Error'); }
   };
@@ -55,15 +64,27 @@ const Dashboard = () => {
     if (!file) return;
     const formData = new FormData();
     formData.append('resume', file);
+    const token = localStorage.getItem('token');
     try {
-      const response = await axios.post(`${API_URL}/resume/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await axios.post(`${API_URL}/resume/upload`, formData, { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        } 
+      });
       setResume(response.data.resume);
       fetchDashboardStats();
     } catch (e) { alert('Error uploading'); }
   };
 
   const handleDeleteResume = async () => {
-    try { await axios.delete(`${API_URL}/resume`); setResume(null); }
+    const token = localStorage.getItem('token');
+    try { 
+      await axios.delete(`${API_URL}/resume`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }); 
+      setResume(null); 
+    }
     catch (e) { console.error('Error'); }
   };
 
@@ -99,7 +120,10 @@ const Dashboard = () => {
 
   const startInterview = async () => {
     try {
-      const response = await axios.post(`${API_URL}/interview/start`);
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${API_URL}/interview/start`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       navigate(`/interview/${response.data.interviewId}`);
     } catch (e) { alert(e.response?.data?.message || 'Error'); }
   };
@@ -116,8 +140,11 @@ const Dashboard = () => {
   const handleDeleteInterview = async (e, interviewId) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this interview?')) return;
+    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`${API_URL}/interview/${interviewId}`);
+      await axios.delete(`${API_URL}/interview/${interviewId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       fetchRecentInterviews();
       fetchDashboardStats();
     } catch (e) {

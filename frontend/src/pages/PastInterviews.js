@@ -35,7 +35,10 @@ const PastInterviews = () => {
 
   const fetchInterviews = async () => {
     try {
-      const response = await axios.get(`${API_URL}/interview/history`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/interview/history`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setInterviews(response.data.interviews);
     } catch (error) {
       console.error('Error fetching interviews');
@@ -52,8 +55,11 @@ const PastInterviews = () => {
   const handleDeleteInterview = async (e, interviewId) => {
     e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this interview?')) return;
+    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`${API_URL}/interview/${interviewId}`);
+      await axios.delete(`${API_URL}/interview/${interviewId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       fetchInterviews();
     } catch (error) {
       alert('Error deleting interview');

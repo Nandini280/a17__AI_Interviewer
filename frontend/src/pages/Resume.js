@@ -28,7 +28,10 @@ const Resume = () => {
 
   const fetchResume = async () => {
     try {
-      const response = await axios.get(`${API_URL}/resume`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/resume`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setResume(response.data);
     } catch (e) { console.log('No resume found'); }
     finally { setLoading(false); }
@@ -39,8 +42,14 @@ const Resume = () => {
     setUploading(true);
     const formData = new FormData();
     formData.append('resume', file);
+    const token = localStorage.getItem('token');
     try {
-      const response = await axios.post(`${API_URL}/resume/upload`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await axios.post(`${API_URL}/resume/upload`, formData, { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        } 
+      });
       setResume(response.data.resume);
     } catch (e) { alert('Error uploading resume'); }
     finally { setUploading(false); }
@@ -48,8 +57,11 @@ const Resume = () => {
 
   const handleDeleteResume = async () => {
     if (!window.confirm('Are you sure you want to delete your resume?')) return;
+    const token = localStorage.getItem('token');
     try {
-      await axios.delete(`${API_URL}/resume`);
+      await axios.delete(`${API_URL}/resume`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setResume(null);
     } catch (e) { console.error('Error'); }
   };
