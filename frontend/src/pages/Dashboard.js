@@ -4,7 +4,6 @@ import axios from 'axios';
 import { Brain, FileText, Mic, History, User, LogOut, Upload, Sparkles, Calendar, Briefcase, Play, ChevronRight, Clock, Trophy, TrendingUp, Eye, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// Use the same API_URL logic as AuthContext for consistency
 const API_URL = process.env.REACT_APP_API_URL 
   ? `${process.env.REACT_APP_API_URL}/api` 
   : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
@@ -64,7 +63,6 @@ const Dashboard = () => {
       const interviews = response.data.interviews || [];
       setRecentInterviews(interviews.slice(0, 4));
       
-      // Extract unique skills from completed interviews
       const allSkills = [];
       interviews.forEach(interview => {
         if (interview.skillsTested && interview.status === 'completed') {
@@ -120,7 +118,6 @@ const Dashboard = () => {
         alert('Please log in to view your resume');
         return;
       }
-      
       const viewUrl = `${API_URL}/resume/view?token=${encodeURIComponent(token)}`;
       window.open(viewUrl, '_blank');
     } catch (e) {
@@ -150,10 +147,15 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       navigate(`/interview/${response.data.interviewId}`);
-    } catch (e) { alert(e.response?.data?.message || 'Error'); }
+    } catch (e) { 
+      console.error('Start interview error:', e);
+      const errorMsg = e.response?.data?.message || 'Error starting interview. Please make sure you have uploaded a resume with extractable skills.';
+      alert(errorMsg); 
+    }
   };
 
   const getScoreColor = (score) => score >= 80 ? c.success : score >= 50 ? '#F59E0B' : c.danger;
+  
   const getTimeAgo = (date) => {
     const h = Math.floor((new Date() - new Date(date)) / (1000 * 60 * 60));
     if (h < 1) return 'Just now';
@@ -177,7 +179,6 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate SVG circle properties
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (stats.averageScore / 100) * circumference;
@@ -317,18 +318,7 @@ const Dashboard = () => {
               <div style={{ position: 'relative', width: '80px', height: '80px', margin: '0 auto' }}>
                 <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="40" cy="40" r={radius} fill="none" stroke={c.border} strokeWidth="6" />
-                  <circle 
-                    cx="40" 
-                    cy="40" 
-                    r={radius} 
-                    fill="none" 
-                    stroke={c.primary} 
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    style={{ transition: 'stroke-dashoffset 0.5s ease-in-out' }}
-                  />
+                  <circle cx="40" cy="40" r={radius} fill="none" stroke={c.primary} strokeWidth="6" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} style={{ transition: 'stroke-dashoffset 0.5s ease-in-out' }} />
                 </svg>
                 <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: '700', color: c.textPrimary }}>{stats.averageScore}%</span>
