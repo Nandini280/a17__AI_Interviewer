@@ -38,10 +38,42 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AI Interviewer API is running' });
 });
 
-// MongoDB Connection
+// MongoDB Connection - cached for serverless
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai-interviewer';
 
-mongoose.connect(MONGO_URI)
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+const connectDB = async () => {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      bufferCommands: false,
+    };
+
+    cached.promise = mongoose.connect(MONGO_URI, opts).then((mongoose) => {
+      return mongoose;
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+
+  return cached.conn;
+};
+
+// Initialize DB connection
+connectDB()
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
