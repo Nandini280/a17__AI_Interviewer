@@ -4,7 +4,10 @@ import axios from 'axios';
 import { Brain, FileText, Mic, History, User, LogOut, Upload, Sparkles, Calendar, Briefcase, Play, ChevronRight, Clock, Trophy, TrendingUp, Eye, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = '/api';
+// Use the same API_URL logic as AuthContext for consistency
+const API_URL = process.env.REACT_APP_API_URL 
+  ? `${process.env.REACT_APP_API_URL}/api` 
+  : (process.env.NODE_ENV === 'production' ? 'https://a17-backend.vercel.app/api' : '/api');
 
 const Dashboard = () => {
   const navigate = useNavigate();
